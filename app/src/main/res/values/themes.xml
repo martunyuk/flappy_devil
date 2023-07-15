@@ -1,0 +1,9 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.FlappyDevil" parent="Theme.Material3.Light.NoActionBar">
+        <!-- Customize your light theme here. -->
+        <item name="android:statusBarColor">@color/black</item>
+    </style>
+
+    <style name="Theme.FlappyDevil" parent="Base.Theme.FlappyDevil" />
+</resources>

@@ -10,16 +10,24 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModelProvider
+import androidx.room.Room
 import com.candiesgames.flappydevil.FragmentManager
 import com.candiesgames.flappydevil.R
 import com.candiesgames.flappydevil.fragment.GameFragment
 import com.candiesgames.flappydevil.fragment.WebViewFragment
+import com.candiesgames.flappydevil.room.MyDatabase
+import com.candiesgames.flappydevil.room.MyEntity
 import com.candiesgames.flappydevil.view_model.MainViewModel
 import com.candiesgames.flappydevil.view_model.MainViewModelFactory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.util.Random
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var mainVM: MainViewModel
+    lateinit var database: MyDatabase
 
     companion object {
         var mediaPlayer: MediaPlayer? = null
@@ -37,24 +45,44 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        database = Room.databaseBuilder(applicationContext, MyDatabase::class.java, "my_database").build()
+
         mainVM = ViewModelProvider(this, MainViewModelFactory(this))[MainViewModel::class.java]
 
         hideSystemBar()
         setNightModeNo()
-        checkInternetConnection()
+        openRandomFragment()
     }
 
-    private fun checkInternetConnection() {
-        mainVM.checkForInternet()
+    private fun openRandomFragment() {
 
-        mainVM.isConnection.observe(this) { isConnection ->
-            if (isConnection) {
-                mediaPlayer?.stop()
-                mediaPlayer?.release()
-                mediaPlayer = null
-                FragmentManager.replaceFragment(GameFragment(), this)
-            } else {
-                FragmentManager.replaceFragment(GameFragment(), this)
+        val random = Random()
+        val randomBoolean = random.nextBoolean()
+
+        CoroutineScope(Dispatchers.IO).launch {
+            if (database.myDao().getFirst() == null){
+                val myEntity = MyEntity(randomBoolean)
+                database.myDao().insert(myEntity)
+            }
+
+            checkInetConnect(database.myDao().getFirst()!!.myBoolean)
+        }
+
+    }
+
+    private fun checkInetConnect(randomBoolean: Boolean){
+        this.runOnUiThread{
+            mainVM.checkForInternet()
+
+            mainVM.isConnection.observe(this) { isConnection ->
+                if (isConnection && randomBoolean) {
+                    mediaPlayer?.stop()
+                    mediaPlayer?.release()
+                    mediaPlayer = null
+                    FragmentManager.replaceFragment(WebViewFragment(), this@MainActivity)
+                } else {
+                    FragmentManager.replaceFragment(GameFragment(), this@MainActivity)
+                }
             }
         }
     }
